@@ -5,6 +5,7 @@ from agents.weather_agent import get_weather
 from agents.news_agent     import get_news
 from agents.sports_agent   import get_sports
 from agents.system_agent   import open_application, open_website, get_system_info
+from agents.memory_agent   import remember, recall, forget, get_memory_context
 
 client = Groq(api_key=GROQ_API_KEY)
 
@@ -38,10 +39,19 @@ Available tools:
 - open_application  → params: { "app_name": "vscode|chrome|intellij|notepad|spotify|terminal" }
 - open_website      → params: { "url": "https://..." }
 - get_system_info   → params: {}
+- remember          → params: { "key": "short label", "value": "what to store" }
+- recall_memory     → params: { "query": "search term, or empty string for all memories" }
+- forget            → params: { "key": "label to delete" }
 - just_chat         → params: { "reply": "your conversational response here" }
 
 Use just_chat for greetings, casual chat, jokes, sarcastic remarks, or anything
 that doesn't need a tool. Always pick exactly one tool per response.
+
+Memory rules:
+- Use `remember` when the user says "remember", "don't forget", "note that", "save that".
+- Use `recall_memory` when the user says "what do you know about me", "do you remember", "what did I tell you".
+- Use `forget` when the user says "forget", "delete that", "remove that from memory".
+- If a memory is relevant to a question, use it naturally in your reply without being told to.
 Return ONLY the JSON object. No explanation, no markdown, no extra text.
 - Never repeat the same joke twice. Be creative and random each time.
 - For jokes, pick from different categories: puns, tech humor, sarcastic one-liners, Indian humor, self-aware AI jokes.
@@ -71,7 +81,11 @@ def _add_to_history(user_text: str, reply: str):
 
 
 def _build_messages(user_text: str) -> list[dict]:
-    msgs = [{"role": "system", "content": SYSTEM_PROMPT}]
+    system = SYSTEM_PROMPT
+    mem_ctx = get_memory_context()
+    if mem_ctx:
+        system = system + "\n\n" + mem_ctx
+    msgs = [{"role": "system", "content": system}]
     msgs.extend(_history)
     msgs.append({"role": "user", "content": user_text})
     return msgs
@@ -116,6 +130,12 @@ def process_command(user_text: str) -> str:
             result = open_website(params.get("url"))
         elif tool == "get_system_info":
             result = get_system_info()
+        elif tool == "remember":
+            result = remember(params.get("key", ""), params.get("value", ""))
+        elif tool == "recall_memory":
+            result = recall(params.get("query", ""))
+        elif tool == "forget":
+            result = forget(params.get("key", ""))
         elif tool == "just_chat":
             reply = params.get("reply", "I'm here, how can I help?")
             _add_to_history(user_text, reply)

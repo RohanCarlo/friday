@@ -5,7 +5,8 @@ A personal Iron Man-inspired voice assistant for Windows. Uses Groq (LLaMA) for 
 ## Features
 
 - **Wake word** — say "Hi Friday" to activate
-- **Conversation memory** — remembers the last 3 exchanges in a session
+- **Persistent memory** — remembers facts about you across sessions (`memory.json`)
+- **Conversation context** — keeps the last 3 exchanges in memory during a session
 - **Morning briefing** — auto-fetches Barcelona news, RCB scores, and top headlines on startup
 - **Weather** — real-time via OpenWeatherMap
 - **News** — top headlines via NewsAPI (India)
@@ -68,13 +69,25 @@ Or double-click `start_friday.bat`.
 | "System info" | CPU and RAM usage |
 | "Goodbye" / "Go to sleep" | Back to sleep mode |
 
+### Memory commands
+
+| Say | What happens |
+|-----|-------------|
+| "Remember I like dark coffee" | Saves the fact to `memory.json` |
+| "Don't forget my sister's birthday is March 15" | Saves with a descriptive key |
+| "What do you know about me?" | Speaks all stored memories |
+| "Do you remember my coffee preference?" | Searches memories for "coffee" |
+| "Forget my coffee preference" | Deletes that entry |
+
+FRIDAY uses stored memories **automatically** — if you've told her your city, she'll factor that into recommendations without being asked.
+
 ## Project structure
 
 ```
 friday/
 ├── main.py              # Entry point, conversation loop
-├── orchestrator.py      # LLM routing + tool dispatch
-├── voice_input.py       # Speech recognition
+├── orchestrator.py      # LLM routing + tool dispatch + session context
+├── voice_input.py       # Speech recognition (calibrates mic once at startup)
 ├── voice_output.py      # Text-to-speech (pyttsx3 + gTTS fallback)
 ├── wake_word.py         # Wake phrase detection
 ├── friday_gui.py        # Tkinter animated GUI
@@ -83,7 +96,9 @@ friday/
 │   ├── weather_agent.py
 │   ├── news_agent.py
 │   ├── sports_agent.py
-│   └── system_agent.py
+│   ├── system_agent.py
+│   └── memory_agent.py  # Persistent memory (read/write memory.json)
+├── memory.json          # Auto-created; stores your facts (gitignored)
 ├── .env                 # Your API keys (never committed)
 └── .env.example         # Template for new users
 ```

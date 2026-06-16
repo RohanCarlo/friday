@@ -117,6 +117,14 @@ def process_command(user_text: str) -> str:
         tool   = tool_call.get("tool")
         params = tool_call.get("params", {})
 
+        # Handle shorthand the model sometimes emits: {"just_chat": "reply text"}
+        # or {"tool_name": {...params...}} instead of the canonical format.
+        if tool is None:
+            for k, v in tool_call.items():
+                tool   = k
+                params = v if isinstance(v, dict) else {"reply": v}
+                break
+
         # ── Step 2: execute the tool ──────────────────────────────
         if tool == "get_weather":
             result = get_weather(params.get("city"))
